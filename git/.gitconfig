@@ -1,0 +1,8 @@
+[alias]
+	amend = commit --amend --no-edit
+	fpush = push --force-with-lease
+	dog = log --decorate --graph --oneline
+
+[user]
+	name = Erik Nystø Rahka
+	email = erikrahka@gmail.com
