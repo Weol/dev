@@ -38,14 +38,14 @@ function b64 {
         [string]$File
     )
 
-    process {
-        $bytes = switch ($PSCmdlet.ParameterSetName) {
-            'File'   { [System.IO.File]::ReadAllBytes($File) }
-            'String' { [System.Text.Encoding]::UTF8.GetBytes($String) }
-        }
+    $location = (Get-Location).path
 
-        Write-Output ([Convert]::ToBase64String($bytes))
+    $bytes = switch ($PSCmdlet.ParameterSetName) {
+        'File'   { [System.IO.File]::ReadAllBytes("$($location)/$($File)") }
+        'String' { [System.Text.Encoding]::UTF8.GetBytes($String) }
     }
+
+    Write-Output ([Convert]::ToBase64String($bytes))
 }
 
 <#
@@ -133,39 +133,39 @@ function d64 {
         [string]$OutFile
     )
 
-    process {
-        # 1) Grab the Base64 source
-        switch ($PSCmdlet.ParameterSetName) {
-            'String'    { $b64 = $String }
-            'File'      { $b64 = Get-Content -Raw -Path $File }
-            'Clipboard' { $b64 = Get-Clipboard }
-        }
+    $location = (Get-Location).path
 
-        # 2) Decode to byte[]
-        $decodedBytes = [Convert]::FromBase64String($b64)
+    # 1) Grab the Base64 source
+    switch ($PSCmdlet.ParameterSetName) {
+        'String'    { $b64 = $String }
+        'File'      { $b64 = Get-Content -Raw -Path "$($location)/$($File)" }
+        'Clipboard' { $b64 = Get-Clipboard }
+    }
 
-        # 3) If OutFile is specified, write bytes and prompt to open
-        if ($OutFile) {
-            [System.IO.File]::WriteAllBytes($OutFile, $decodedBytes)
-            $count = $decodedBytes.Length
-            Write-Output "Decoded $count bytes and wrote to: '$OutFile'"
-            $answer = Read-Host "Do you want to start the decoded file now? (Y/N)"
-            if ($answer -match '^[Yy]') {
-                try {
-                    Start-Process -FilePath $OutFile
-                } catch {
-                    Write-Warning "Could not start '$OutFile': $_"
-                }
+    # 2) Decode to byte[]
+    $decodedBytes = [Convert]::FromBase64String($b64)
+
+    # 3) If OutFile is specified, write bytes and prompt to open
+    if ($OutFile) {
+        [System.IO.File]::WriteAllBytes($OutFile, $decodedBytes)
+        $count = $decodedBytes.Length
+        Write-Output "Decoded $count bytes and wrote to: '$OutFile'"
+        $answer = Read-Host "Do you want to start the decoded file now? (Y/N)"
+        if ($answer -match '^[Yy]') {
+            try {
+                Start-Process -FilePath $OutFile
+            } catch {
+                Write-Warning "Could not start '$OutFile': $_"
             }
-            return
         }
+        return
+    }
 
-        # 4) Otherwise, output to console
-        if ($Bytes) {
-            return ,$decodedBytes
-        }
-        else {
-            return [System.Text.Encoding]::UTF8.GetString($decodedBytes)
-        }
+    # 4) Otherwise, output to console
+    if ($Bytes) {
+        return ,$decodedBytes
+    }
+    else {
+        return [System.Text.Encoding]::UTF8.GetString($decodedBytes)
     }
 }
